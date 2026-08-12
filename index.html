@@ -1,43 +1,131 @@
 <!doctype html>
-<html lang="en">
+<html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <link rel="stylesheet" href="/src/styles.css" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri App</title>
-    <script type="module" src="/src/main.ts" defer></script>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+
+    <link
+      rel="stylesheet"
+      href="/src/styles.css"
+    />
+
+    <title>Tint*</title>
+
+    <script
+      type="module"
+      src="/src/main.ts"
+    ></script>
   </head>
 
   <body>
-    <main class="container">
-      <h1>Welcome to Tauri</h1>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          Tint<span class="star">*</span>
+        </div>
 
-      <div class="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/src/assets/vite.svg" class="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img
-            src="/src/assets/tauri.svg"
-            class="logo tauri"
-            alt="Tauri logo"
-          />
-        </a>
-        <a href="https://www.typescriptlang.org/docs" target="_blank">
-          <img
-            src="/src/assets/typescript.svg"
-            class="logo typescript"
-            alt="typescript logo"
-          />
-        </a>
-      </div>
-      <p>Click on the Tauri logo to learn more about the framework</p>
+        <div class="product">
+          Primer
+        </div>
+      </header>
 
-      <form class="row" id="greet-form">
-        <input id="greet-input" placeholder="Enter a name..." />
-        <button type="submit">Greet</button>
-      </form>
-      <p id="greet-msg"></p>
-    </main>
+      <main class="workspace">
+        <!-- LEFT -->
+        <section class="panel source-panel">
+          <div class="panel-header">
+            <div class="source-title">
+              <span>Primer</span>
+
+              <button
+                id="file-name"
+                class="file-name"
+                type="button"
+                title="Click to rename"
+              >
+                Untitled.prim
+              </button>
+            </div>
+
+            <div class="file-actions">
+              <button
+                id="open-button"
+                type="button"
+              >
+                Open
+              </button>
+
+              <button
+                id="save-button"
+                type="button"
+              >
+                Save
+              </button>
+
+              <button
+                id="emit-button"
+                type="button"
+              >
+                Emit
+              </button>
+            </div>
+          </div>
+          <div
+            id="source-editor"
+            aria-label="Primer source"
+          ></div>
+        </section>
+
+        <!-- RIGHT -->
+        <section class="panel output-panel">
+          <div class="tabs">
+            <button
+              class="tab active"
+              data-output="c"
+              type="button"
+            >
+              C
+            </button>
+
+            <button
+              class="tab"
+              data-output="llvm"
+              type="button"
+            >
+              LLVM IR
+            </button>
+
+            <button
+              class="tab"
+              data-output="wat"
+              type="button"
+            >
+              WAT
+            </button>
+          </div>
+
+          <pre id="output">Press Emit to generate code.</pre>
+        </section>
+      </main>
+
+      <footer class="statusbar">
+        <div class="status">
+          <span
+            id="status-dot"
+            class="status-dot"
+          ></span>
+
+          <span id="status-text">
+            Ready
+          </span>
+        </div>
+
+        <span class="shortcut">
+          Ctrl + Enter
+        </span>
+      </footer>
+    </div>
   </body>
 </html>
