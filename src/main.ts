@@ -30,18 +30,51 @@ import {
 
 type OutputKind =
   | "c"
+  | "cAsm"
   | "llvm"
+  | "llvmAsm"
   | "wat"
   | "qbe"
-  | "qbeAsm";
+  | "qbeAsm"
+  | "directAsm"
+  | "bytecode"
+  | "vmOutput";
 
 interface EmitResult {
   c: string;
+  cAsm: string;
+
   llvm: string;
+  llvmAsm: string;
+
   wat: string;
+
   qbe: string;
   qbeAsm: string;
+
+  directAsm: string;
+
+  bytecode: string;
+  vmOutput: string;
 }
+
+const outputs: EmitResult = {
+  c: "",
+  cAsm: "",
+
+  llvm: "",
+  llvmAsm: "",
+
+  wat: "",
+
+  qbe: "",
+  qbeAsm: "",
+
+  directAsm: "",
+
+  bytecode: "",
+  vmOutput: "",
+};
 
 const initialSource = `integer: i64 = 1 + 2;
 single: f32 = 0.1 + 0.2;
@@ -52,14 +85,6 @@ print(integer);
 print(single);
 print(double);
 print(inferred);`;
-
-const outputs: EmitResult = {
-  c: "",
-  llvm: "",
-  wat: "",
-  qbe: "",
-  qbeAsm: "",
-};
 
 let activeOutput: OutputKind = "c";
 let currentPath: string | null = null;
@@ -225,10 +250,21 @@ async function emit() {
       );
 
     outputs.c = result.c;
+    outputs.cAsm = result.cAsm;
+
     outputs.llvm = result.llvm;
+    outputs.llvmAsm = result.llvmAsm;
+
     outputs.wat = result.wat;
+
     outputs.qbe = result.qbe;
     outputs.qbeAsm = result.qbeAsm;
+
+    outputs.directAsm = result.directAsm;
+
+    outputs.bytecode = result.bytecode;
+    outputs.vmOutput = result.vmOutput;
+
     showOutput(activeOutput);
 
     setStatus("Ready");

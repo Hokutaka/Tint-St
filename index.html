@@ -91,10 +91,26 @@
 
             <button
               class="tab"
+              data-output="cAsm"
+              type="button"
+            >
+              C ASM
+            </button>
+
+            <button
+              class="tab"
               data-output="llvm"
               type="button"
             >
               LLVM IR
+            </button>
+
+            <button
+              class="tab"
+              data-output="llvmAsm"
+              type="button"
+            >
+              LLVM ASM
             </button>
 
             <button
@@ -120,6 +136,31 @@
             >
               QBE ASM
             </button>
+
+            <button
+              class="tab"
+              data-output="directAsm"
+              type="button"
+            >
+              Direct ASM
+            </button>
+
+            <button
+              class="tab"
+              data-output="bytecode"
+              type="button"
+            >
+              Bytecode
+            </button>
+
+            <button
+              class="tab"
+              data-output="vmOutput"
+              type="button"
+            >
+              VM Output
+            </button>
+
           </div>
           <pre id="output">Press Emit to generate code.</pre>
         </section>

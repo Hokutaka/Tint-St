@@ -10,10 +10,20 @@ use std::{
 #[serde(rename_all = "camelCase")]
 struct EmitResult {
     c: String,
+    c_asm: String,
+
     llvm: String,
+    llvm_asm: String,
+
     wat: String,
+
     qbe: String,
     qbe_asm: String,
+
+    direct_asm: String,
+
+    bytecode: String,
+    vm_output: String,
 }
 
 fn run_primer(command: &str, source_path: &Path) -> Result<String, String> {
@@ -143,6 +153,81 @@ fn run_qbe_asm(
     result
 }
 
+fn run_clang_asm(
+    source: &str,
+    extension: &str,
+    kind: &str,
+    timestamp: u128,
+) -> Result<String, String> {
+    let temp_dir = std::env::temp_dir();
+
+    let stem =
+        format!("tint-{}-{timestamp}", process::id());
+
+    let input_path =
+        temp_dir.join(format!("{stem}.{extension}"));
+
+    let asm_path =
+        temp_dir.join(format!("{stem}.{kind}.s"));
+
+    fs::write(&input_path, source)
+        .map_err(|error| {
+            format!(
+                "failed to create temporary {kind} input: {error}"
+            )
+        })?;
+
+    let result = (|| {
+        let output =
+            Command::new("clang")
+                .arg("-S")
+                .arg("-O0")
+                .arg(&input_path)
+                .arg("-o")
+                .arg(&asm_path)
+                .output()
+                .map_err(|error| {
+                    format!(
+                        "failed to start Clang: {error}\n\
+                         Make sure `clang` is available in PATH."
+                    )
+                })?;
+
+        if !output.status.success() {
+            let stderr =
+                String::from_utf8_lossy(
+                    &output.stderr,
+                );
+
+            let stdout =
+                String::from_utf8_lossy(
+                    &output.stdout,
+                );
+
+            let message =
+                if !stderr.trim().is_empty() {
+                    stderr.trim().to_owned()
+                } else {
+                    stdout.trim().to_owned()
+                };
+
+            return Err(message);
+        }
+
+        fs::read_to_string(&asm_path)
+            .map_err(|error| {
+                format!(
+                    "failed to read generated assembly: {error}"
+                )
+            })
+    })();
+
+    let _ = fs::remove_file(&input_path);
+    let _ = fs::remove_file(&asm_path);
+
+    result
+}
+
 #[tauri::command]
 fn rename_source(
     path: String,
@@ -251,11 +336,37 @@ fn emit_all(
                 &source_path,
             )?;
 
+        let c_asm =
+            run_clang_asm(
+                &c,
+                "c",
+                "c",
+                timestamp,
+            )
+            .unwrap_or_else(|error| {
+                format!(
+                    "C ASM unavailable:\n{error}"
+                )
+            });
+
         let llvm =
             run_primer(
                 "emit-llvm",
                 &source_path,
             )?;
+
+        let llvm_asm =
+            run_clang_asm(
+                &llvm,
+                "ll",
+                "llvm",
+                timestamp,
+            )
+            .unwrap_or_else(|error| {
+                format!(
+                    "LLVM ASM unavailable:\n{error}"
+                )
+            });
 
         let wat =
             run_primer(
@@ -274,20 +385,41 @@ fn emit_all(
                 &qbe,
                 timestamp,
             )
-            .unwrap_or_else(
-                |error| {
-                    format!(
-                        "QBE ASM unavailable:\n{error}"
-                    )
-                },
-            );
+            .unwrap_or_else(|error| {
+                format!(
+                    "QBE ASM unavailable:\n{error}"
+                )
+            });
+
+        let direct_asm =
+            run_primer(
+                "emit-asm",
+                &source_path,
+            )?;
+
+        let bytecode =
+            run_primer(
+                "emit-bytecode",
+                &source_path,
+            )?;
+
+        let vm_output =
+            run_primer(
+                "run",
+                &source_path,
+            )?;
 
         Ok(EmitResult {
             c,
+            c_asm,
             llvm,
+            llvm_asm,
             wat,
             qbe,
             qbe_asm,
+            direct_asm,
+            bytecode,
+            vm_output,
         })
     })();
 

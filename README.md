@@ -1,4 +1,4 @@
-*English* | [日本語](README.ja.md)
+**English** | [日本語](README.ja.md)
 
 # Tint*
 

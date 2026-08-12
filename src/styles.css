@@ -194,10 +194,16 @@ button {
 .tabs {
   padding: 0 8px;
   gap: 2px;
+
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-wrap: nowrap;
 }
 
 .tab {
   align-self: stretch;
+
+  flex: 0 0 auto;
 
   padding: 0 12px;
 
