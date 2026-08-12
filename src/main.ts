@@ -31,12 +31,16 @@ import {
 type OutputKind =
   | "c"
   | "llvm"
-  | "wat";
+  | "wat"
+  | "qbe"
+  | "qbeAsm";
 
 interface EmitResult {
   c: string;
   llvm: string;
   wat: string;
+  qbe: string;
+  qbeAsm: string;
 }
 
 const initialSource = `integer: i64 = 1 + 2;
@@ -53,6 +57,8 @@ const outputs: EmitResult = {
   c: "",
   llvm: "",
   wat: "",
+  qbe: "",
+  qbeAsm: "",
 };
 
 let activeOutput: OutputKind = "c";
@@ -221,7 +227,8 @@ async function emit() {
     outputs.c = result.c;
     outputs.llvm = result.llvm;
     outputs.wat = result.wat;
-
+    outputs.qbe = result.qbe;
+    outputs.qbeAsm = result.qbeAsm;
     showOutput(activeOutput);
 
     setStatus("Ready");

@@ -112,6 +112,8 @@ The interface therefore stays focused on two things:
 source | generated representation
 ```
 
+![alt text](/images/image.png)
+
 Primer remains responsible for the language and code generation.
 
 Tint remains the window into it.

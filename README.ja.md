@@ -121,4 +121,6 @@ Primerを書く場所と、Primerが生成したものを見る場所。
 source | generated code
 ```
 
+![alt text](/images/image.png)
+
 Primerが言語そのものを担当して、Tintはそれを覗くためのものになります。

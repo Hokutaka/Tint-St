@@ -7,10 +7,13 @@ use std::{
 };
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct EmitResult {
     c: String,
     llvm: String,
     wat: String,
+    qbe: String,
+    qbe_asm: String,
 }
 
 fn run_primer(command: &str, source_path: &Path) -> Result<String, String> {
@@ -41,6 +44,103 @@ fn run_primer(command: &str, source_path: &Path) -> Result<String, String> {
 
     String::from_utf8(output.stdout)
         .map_err(|error| format!("Primer returned invalid UTF-8: {error}"))
+}
+
+fn run_qbe_asm(
+    qbe: &str,
+    timestamp: u128,
+) -> Result<String, String> {
+    let temp_dir = std::env::temp_dir();
+
+    let stem =
+        format!("tint-{}-{timestamp}", process::id());
+
+    let qbe_path =
+        temp_dir.join(format!("{stem}.ssa"));
+
+    let asm_path =
+        temp_dir.join(format!("{stem}.qbe.s"));
+
+    fs::write(&qbe_path, qbe)
+        .map_err(|error| {
+            format!(
+                "failed to create temporary QBE IR: {error}"
+            )
+        })?;
+
+    let result = (|| {
+        let qbe_name =
+            qbe_path
+                .file_name()
+                .ok_or_else(|| {
+                    "invalid QBE temporary path"
+                        .to_owned()
+                })?;
+
+        let asm_name =
+            asm_path
+                .file_name()
+                .ok_or_else(|| {
+                    "invalid ASM temporary path"
+                        .to_owned()
+                })?;
+
+        let output =
+            Command::new("wsl")
+                .current_dir(&temp_dir)
+                .arg("qbe")
+                .arg("-t")
+                .arg("amd64_win")
+                .arg("-o")
+                .arg(asm_name)
+                .arg(qbe_name)
+                .output()
+                .map_err(|error| {
+                    format!(
+                        "failed to start QBE through WSL: {error}"
+                    )
+                })?;
+
+        if !output.status.success() {
+            let stderr =
+                String::from_utf8_lossy(
+                    &output.stderr,
+                );
+
+            let stdout =
+                String::from_utf8_lossy(
+                    &output.stdout,
+                );
+
+            let message =
+                if !stderr.trim().is_empty() {
+                    stderr.trim().to_owned()
+                } else {
+                    stdout.trim().to_owned()
+                };
+
+            return Err(
+                if message.is_empty() {
+                    "QBE failed without an error message"
+                        .to_owned()
+                } else {
+                    message
+                },
+            );
+        }
+
+        fs::read_to_string(&asm_path)
+            .map_err(|error| {
+                format!(
+                    "failed to read QBE assembly: {error}"
+                )
+            })
+    })();
+
+    let _ = fs::remove_file(&qbe_path);
+    let _ = fs::remove_file(&asm_path);
+
+    result
 }
 
 #[tauri::command]
@@ -110,32 +210,91 @@ fn rename_source(
 }
 
 #[tauri::command]
-fn emit_all(source: String) -> Result<EmitResult, String> {
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos();
+fn emit_all(
+    source: String,
+) -> Result<EmitResult, String> {
+    let timestamp =
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
 
-    let filename = format!("tint-{}-{timestamp}.prim", process::id(),);
+    let filename =
+        format!(
+            "tint-{}-{timestamp}.prim",
+            process::id(),
+        );
 
-    let source_path = std::env::temp_dir().join(filename);
+    let source_path =
+        std::env::temp_dir()
+            .join(filename);
 
-    fs::write(&source_path, source)
-        .map_err(|error| format!("failed to create temporary Primer source: {error}"))?;
+    fs::write(
+        &source_path,
+        source,
+    )
+    .map_err(|error| {
+        format!(
+            "failed to create temporary Primer source: {error}"
+        )
+    })?;
 
     let result = (|| {
-        run_primer("check", &source_path)?;
+        run_primer(
+            "check",
+            &source_path,
+        )?;
 
-        let c = run_primer("emit-c", &source_path)?;
+        let c =
+            run_primer(
+                "emit-c",
+                &source_path,
+            )?;
 
-        let llvm = run_primer("emit-llvm", &source_path)?;
+        let llvm =
+            run_primer(
+                "emit-llvm",
+                &source_path,
+            )?;
 
-        let wat = run_primer("emit-wat", &source_path)?;
+        let wat =
+            run_primer(
+                "emit-wat",
+                &source_path,
+            )?;
 
-        Ok(EmitResult { c, llvm, wat })
+        let qbe =
+            run_primer(
+                "emit-qbe",
+                &source_path,
+            )?;
+
+        let qbe_asm =
+            run_qbe_asm(
+                &qbe,
+                timestamp,
+            )
+            .unwrap_or_else(
+                |error| {
+                    format!(
+                        "QBE ASM unavailable:\n{error}"
+                    )
+                },
+            );
+
+        Ok(EmitResult {
+            c,
+            llvm,
+            wat,
+            qbe,
+            qbe_asm,
+        })
     })();
 
-    let _ = fs::remove_file(&source_path);
+    let _ =
+        fs::remove_file(
+            &source_path,
+        );
 
     result
 }
