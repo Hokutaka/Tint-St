@@ -28,7 +28,7 @@
         </div>
 
         <div class="product">
-          Primer
+          Cerune
         </div>
       </header>
 
@@ -37,7 +37,7 @@
         <section class="panel source-panel">
           <div class="panel-header">
             <div class="source-title">
-              <span>Primer</span>
+              <span>Cerune</span>
 
               <button
                 id="file-name"
@@ -45,7 +45,7 @@
                 type="button"
                 title="Click to rename"
               >
-                Untitled.prim
+                Untitled.ceru
               </button>
             </div>
 
@@ -64,6 +64,27 @@
                 Save
               </button>
 
+              <select
+                id="target-select"
+                aria-label="Target"
+              >
+                <option value="x86_64-pc-windows-msvc">
+                  Windows x64
+                </option>
+
+                <option value="x86_64-unknown-linux-gnu">
+                  Linux x86-64
+                </option>
+              </select>
+
+              <label class="origins-option">
+                <input
+                  id="origins-toggle"
+                  type="checkbox"
+                />
+                Origins
+              </label>
+
               <button
                 id="emit-button"
                 type="button"
@@ -74,94 +95,117 @@
           </div>
           <div
             id="source-editor"
-            aria-label="Primer source"
+            aria-label="Cerune source"
           ></div>
         </section>
 
         <!-- RIGHT -->
         <section class="panel output-panel">
           <div class="tabs">
-            <button
-              class="tab active"
-              data-output="c"
-              type="button"
-            >
-              C
-            </button>
+          <button
+            class="tab"
+            data-output="sources"
+            type="button"
+          >
+            Sources
+          </button>
 
-            <button
-              class="tab"
-              data-output="cAsm"
-              type="button"
-            >
-              C ASM
-            </button>
+          <button
+            class="tab active"
+            data-output="ir"
+            type="button"
+          >
+            Cerune IR
+          </button>
 
-            <button
-              class="tab"
-              data-output="llvm"
-              type="button"
-            >
-              LLVM IR
-            </button>
+          <button
+            class="tab"
+            data-output="c"
+            type="button"
+          >
+            C
+          </button>
 
-            <button
-              class="tab"
-              data-output="llvmAsm"
-              type="button"
-            >
-              LLVM ASM
-            </button>
+          <button
+            class="tab"
+            data-output="cAsm"
+            type="button"
+          >
+            C ASM
+          </button>
 
-            <button
-              class="tab"
-              data-output="wat"
-              type="button"
-            >
-              WAT
-            </button>
+          <button
+            class="tab"
+            data-output="llvm"
+            type="button"
+          >
+            LLVM IR
+          </button>
 
-            <button
-              class="tab"
-              data-output="qbe"
-              type="button"
-            >
-              QBE IR
-            </button>
+          <button
+            class="tab"
+            data-output="llvmAsm"
+            type="button"
+          >
+            LLVM ASM
+          </button>
 
-            <button
-              class="tab"
-              data-output="qbeAsm"
-              type="button"
-            >
-              QBE ASM
-            </button>
+          <button
+            class="tab"
+            data-output="wat"
+            type="button"
+          >
+            WAT
+          </button>
 
-            <button
-              class="tab"
-              data-output="directAsm"
-              type="button"
-            >
-              Direct ASM
-            </button>
+          <button
+            class="tab"
+            data-output="qbe"
+            type="button"
+          >
+            QBE IR
+          </button>
 
-            <button
-              class="tab"
-              data-output="bytecode"
-              type="button"
-            >
-              Bytecode
-            </button>
+          <button
+            class="tab"
+            data-output="qbeAsm"
+            type="button"
+          >
+            QBE ASM
+          </button>
 
-            <button
-              class="tab"
-              data-output="vmOutput"
-              type="button"
-            >
-              VM Output
-            </button>
+          <button
+            class="tab"
+            data-output="directAsm"
+            type="button"
+          >
+            Direct ASM
+          </button>
 
-          </div>
+          <button
+            class="tab"
+            data-output="object"
+            type="button"
+          >
+            Object
+          </button>
+
+          <button
+            class="tab"
+            data-output="bytecode"
+            type="button"
+          >
+            Bytecode
+          </button>
+
+          <button
+            class="tab"
+            data-output="vmOutput"
+            type="button"
+          >
+            VM Output
+          </button>
+        </div>
           <pre id="output">Press Emit to generate code.</pre>
         </section>
       </main>

@@ -1,6 +1,5 @@
 import {
   EditorView,
-  keymap,
 } from "@codemirror/view";
 
 import {
@@ -24,11 +23,17 @@ import {
 import { invoke } from "@tauri-apps/api/core";
 
 import {
-  primerHighlighting,
-  primerLanguage,
-} from "./primer-language";
+  ceruneHighlighting,
+  ceruneLanguage,
+} from "./cerune-language";
+
+type Target =
+  | "x86_64-pc-windows-msvc"
+  | "x86_64-unknown-linux-gnu";
 
 type OutputKind =
+  | "sources"
+  | "ir"
   | "c"
   | "cAsm"
   | "llvm"
@@ -37,10 +42,13 @@ type OutputKind =
   | "qbe"
   | "qbeAsm"
   | "directAsm"
+  | "object"
   | "bytecode"
   | "vmOutput";
 
 interface EmitResult {
+  sources: string;
+  ir: string;
   c: string;
   cAsm: string;
 
@@ -53,12 +61,15 @@ interface EmitResult {
   qbeAsm: string;
 
   directAsm: string;
+  object: string;
 
   bytecode: string;
   vmOutput: string;
 }
 
 const outputs: EmitResult = {
+  sources: "",
+  ir: "",
   c: "",
   cAsm: "",
 
@@ -71,6 +82,7 @@ const outputs: EmitResult = {
   qbeAsm: "",
 
   directAsm: "",
+  object: "",
 
   bytecode: "",
   vmOutput: "",
@@ -86,12 +98,27 @@ print(single);
 print(double);
 print(inferred);`;
 
-let activeOutput: OutputKind = "c";
+let activeOutput: OutputKind = "ir";
 let currentPath: string | null = null;
 
 let sourceView:
   | EditorView
   | null = null;
+
+function selectedTarget(): Target {
+  const element =
+    document.querySelector<HTMLSelectElement>(
+      "#target-select",
+    );
+
+  if (!element) {
+    throw new Error(
+      "target selector not found",
+    );
+  }
+
+  return element.value as Target;
+}
 
 function sourceText(): string {
   if (!sourceView) {
@@ -165,13 +192,28 @@ function showOutput(
     "Press Emit to generate code.";
 }
 
+function annotateOrigins(): boolean {
+  const element =
+    document.querySelector<HTMLInputElement>(
+      "#origins-toggle",
+    );
+
+  if (!element) {
+    throw new Error(
+      "origins toggle not found",
+    );
+  }
+
+  return element.checked;
+}
+
 async function openFile() {
   const path = await open({
     multiple: false,
     filters: [
       {
-        name: "Primer",
-        extensions: ["prim"],
+        name: "Cerune",
+        extensions: ["ceru"],
       },
     ],
   });
@@ -203,8 +245,8 @@ async function saveFile() {
     path = await save({
       filters: [
         {
-          name: "Primer",
-          extensions: ["prim"],
+          name: "Cerune",
+          extensions: ["ceru"],
         },
       ],
     });
@@ -246,24 +288,13 @@ async function emit() {
         "emit_all",
         {
           source: sourceText(),
+          target: selectedTarget(),
+          annotateOrigins: annotateOrigins(),
+          sourcePath: currentPath,
         },
       );
 
-    outputs.c = result.c;
-    outputs.cAsm = result.cAsm;
-
-    outputs.llvm = result.llvm;
-    outputs.llvmAsm = result.llvmAsm;
-
-    outputs.wat = result.wat;
-
-    outputs.qbe = result.qbe;
-    outputs.qbeAsm = result.qbeAsm;
-
-    outputs.directAsm = result.directAsm;
-
-    outputs.bytecode = result.bytecode;
-    outputs.vmOutput = result.vmOutput;
+    Object.assign(outputs, result);
 
     showOutput(activeOutput);
 
@@ -273,7 +304,7 @@ async function emit() {
       String(error);
 
     setStatus(
-      "Primer error",
+      "Cerune error",
       "error",
     );
   } finally {
@@ -286,12 +317,12 @@ async function emit() {
 async function saveAsFile() {
   const path = await save({
     defaultPath:
-      currentPath ?? "Untitled.prim",
+      currentPath ?? "Untitled.ceru",
 
     filters: [
       {
-        name: "Primer",
-        extensions: ["prim"],
+        name: "Cerune",
+        extensions: ["ceru"],
       },
     ],
   });
@@ -335,7 +366,7 @@ async function updateFileName(
 
   if (!path) {
     element.textContent =
-      "Untitled.prim";
+      "Untitled.ceru";
 
     element.title =
       "Click to rename";
@@ -395,7 +426,7 @@ const editorTheme =
     },
   });
 
-  async function renameCurrentFile() {
+async function renameCurrentFile() {
   if (!currentPath) {
     return;
   }
@@ -405,7 +436,7 @@ const editorTheme =
 
   const input =
     window.prompt(
-      "Rename Primer file",
+      "Rename Cerune file",
       oldName,
     );
 
@@ -420,8 +451,8 @@ const editorTheme =
     return;
   }
 
-  if (!newName.endsWith(".prim")) {
-    newName += ".prim";
+  if (!newName.endsWith(".ceru")) {
+    newName += ".ceru";
   }
 
   if (newName === oldName) {
@@ -474,45 +505,56 @@ window.addEventListener(
 
       extensions: [
         minimalSetup,
-        primerLanguage,
-        primerHighlighting,
+        ceruneLanguage,
+        ceruneHighlighting,
         editorTheme,
-
-        keymap.of([
-          {
-            key: "Ctrl-Enter",
-            run: () => {
-              void emit();
-              return true;
-            },
-          },
-
-          {
-            key: "Ctrl-o",
-            run: () => {
-              void openFile();
-              return true;
-            },
-          },
-
-          {
-            key: "Ctrl-s",
-            run: () => {
-              void saveFile();
-              return true;
-            },
-          },
-
-          {
-            key: "Ctrl-Shift-s",
-            run: () => {
-              void saveAsFile();
-              return true;
-            },
-          },
-        ]),
-      ],
+      ]
     });
+
+    window.addEventListener(
+      "keydown",
+      (event) => {
+        const modifier =
+          event.ctrlKey ||
+          event.metaKey;
+
+        if (!modifier) {
+          return;
+        }
+
+        if (event.key === "Enter") {
+          event.preventDefault();
+          event.stopPropagation();
+
+          void emit();
+          return;
+        }
+
+        if (
+          event.key.toLowerCase() === "o"
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          void openFile();
+          return;
+        }
+
+        if (
+          event.key.toLowerCase() === "s"
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          if (event.shiftKey) {
+            void saveAsFile();
+          } else {
+            void saveFile();
+          }
+        }
+      },
+      true,
+    );
 
     document
       .querySelector("#open-button")
@@ -557,13 +599,13 @@ window.addEventListener(
         );
       });
 
-      document
-        .querySelector("#file-name")
-        ?.addEventListener(
-          "click",
-          () => {
-            void renameCurrentFile();
-          },
-        );
-      },
+    document
+      .querySelector("#file-name")
+      ?.addEventListener(
+        "click",
+        () => {
+          void renameCurrentFile();
+        },
+      );
+  },
 );
