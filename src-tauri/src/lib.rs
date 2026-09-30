@@ -30,6 +30,8 @@ struct EmitResult {
     object: String,
 
     bytecode: String,
+
+    ir_output: String,
     vm_output: String,
 }
 
@@ -488,8 +490,9 @@ fn emit_all(
 
         let bytecode = run_cerune("emit-bytecode", &source_path, &[])?;
 
-        let vm_output = run_cerune("run", &source_path, &[])?;
-
+        let ir_output = run_cerune("run", &source_path, &[])?;
+        let vm_output = run_cerune("run-vm", &source_path, &[])?;
+        
         Ok(EmitResult {
             sources,
             ir,
@@ -503,6 +506,7 @@ fn emit_all(
             direct_asm,
             object,
             bytecode,
+            ir_output,
             vm_output,
         })
     })();

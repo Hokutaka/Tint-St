@@ -44,6 +44,7 @@ type OutputKind =
   | "directAsm"
   | "object"
   | "bytecode"
+  | "ir_output"
   | "vmOutput";
 
 interface EmitResult {
@@ -64,6 +65,8 @@ interface EmitResult {
   object: string;
 
   bytecode: string;
+
+  ir_output: string;
   vmOutput: string;
 }
 
@@ -85,6 +88,8 @@ const outputs: EmitResult = {
   object: "",
 
   bytecode: "",
+
+  ir_output: "",
   vmOutput: "",
 };
 
