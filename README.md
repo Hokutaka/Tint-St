@@ -6,7 +6,7 @@ Tint* は [Cerune](https://github.com/Hokutaka/Cerune) のコード生成過程�
 
 Cerune のコードを書く。生成する。眺める。
 
-同じソースコードが、Cerune IR、各バックエンド、Assembly、Object、Bytecode、VM へどう変換されていくのかを、ひとつの画面から観察できます。
+同じソースコードが、Cerune IR、各バックエンド、Assembly、Object、Bytecode、IR Executor、VM へどう変換・実行されていくのかを、ひとつの画面から観察できます。
 
 ![Tint*](images/image.png)
 
@@ -18,6 +18,7 @@ Cerune source
      │
      ├─ Sources
      ├─ Cerune IR
+     ├─ IR Output
      │
      ├─ C
      ├─ C ASM
@@ -49,6 +50,7 @@ Cerune source
 - 現在のソースファイルをリネーム
 - 読み込まれた Sources を表示
 - Cerune IR を表示
+- Cerune IR を IR Executor で直接実行
 - C を生成
 - LLVM IR を生成
 - WebAssembly Text (`.wat`) を生成
@@ -168,7 +170,7 @@ Object は relocatable object であり、外部リンカによって実行フ�
 
 ## 必要なもの
 
-Tint* は、コードの検証・生成・VM 実行に Cerune CLI を使用します。
+Tint* は、コードの検証・生成・IR 実行・VM 実行に Cerune CLI を使用します。
 
 まず Cerune をインストールします。
 
@@ -265,6 +267,7 @@ Tint*
  ├─ cerune check
  ├─ cerune emit-sources
  ├─ cerune emit-ir
+ ├─ cerune run
  ├─ cerune emit-c
  ├─ cerune emit-llvm
  ├─ cerune emit-wat
@@ -272,7 +275,7 @@ Tint*
  ├─ cerune emit-asm
  ├─ cerune emit-obj
  ├─ cerune emit-bytecode
- └─ cerune run
+ └─ cerune run-vm
 ```
 
 いくつかの表示は Cerune が直接生成します。
@@ -280,6 +283,7 @@ Tint*
 ```text
 Cerune → Sources
 Cerune → Cerune IR
+Cerune → Cerune IR → IR Executor → IR Output
 Cerune → C
 Cerune → LLVM IR
 Cerune → WAT
@@ -348,7 +352,7 @@ source | representation / output
 
 です。
 
-Cerune は、言語、意味解析、IR、コード生成、Bytecode、VM、Provenance を担当します。
+Cerune は、言語、意味解析、IR、IR Executor、コード生成、Bytecode、VM、Provenance を担当します。
 
 Clang や QBE などの外部ツールは、それぞれの追加変換を担当します。
 

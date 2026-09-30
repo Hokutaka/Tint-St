@@ -6,7 +6,7 @@ Tint* is a small visual development environment for observing the code generatio
 
 Write Cerune. Generate it. Look at it.
 
-From a single screen, you can observe how the same source code is transformed into Cerune IR, different backends, Assembly, Object files, Bytecode, and VM execution.
+From a single screen, you can observe how the same source code is transformed and executed across Cerune IR, different backends, Assembly, Object files, Bytecode, the IR Executor, and the VM.
 
 ![Tint*](images/image.png)
 
@@ -18,6 +18,7 @@ Cerune source
      │
      ├─ Sources
      ├─ Cerune IR
+     ├─ IR Output
      │
      ├─ C
      ├─ C ASM
@@ -49,6 +50,7 @@ Cerune source
 - Rename the current source file
 - Display loaded Sources
 - Display Cerune IR
+- Execute Cerune IR directly with the IR Executor
 - Generate C
 - Generate LLVM IR
 - Generate WebAssembly Text (`.wat`)
@@ -168,7 +170,7 @@ The generated files are relocatable objects and can be linked into executables b
 
 ## Requirements
 
-Tint* uses the Cerune CLI for validation, code generation, and VM execution.
+Tint* uses the Cerune CLI for validation, code generation, IR execution, and VM execution.
 
 First, install Cerune.
 
@@ -265,6 +267,7 @@ Tint*
  ├─ cerune check
  ├─ cerune emit-sources
  ├─ cerune emit-ir
+ ├─ cerune run
  ├─ cerune emit-c
  ├─ cerune emit-llvm
  ├─ cerune emit-wat
@@ -272,7 +275,7 @@ Tint*
  ├─ cerune emit-asm
  ├─ cerune emit-obj
  ├─ cerune emit-bytecode
- └─ cerune run
+ └─ cerune run-vm
 ```
 
 Some views are generated directly by Cerune.
@@ -280,6 +283,7 @@ Some views are generated directly by Cerune.
 ```text
 Cerune → Sources
 Cerune → Cerune IR
+Cerune → Cerune IR → IR Executor → IR Output
 Cerune → C
 Cerune → LLVM IR
 Cerune → WAT
@@ -346,7 +350,7 @@ The interface fundamentally focuses on:
 source | representation / output
 ```
 
-Cerune is responsible for the language, semantic analysis, IR, code generation, Bytecode, VM, and Provenance.
+Cerune is responsible for the language, semantic analysis, IR, the IR Executor, code generation, Bytecode, the VM, and Provenance.
 
 External tools such as Clang and QBE are responsible for their respective additional transformations.
 
