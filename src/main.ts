@@ -31,9 +31,21 @@ type Target =
   | "x86_64-pc-windows-msvc"
   | "x86_64-unknown-linux-gnu";
 
+type ExecutionPath =
+  | "ir"
+  | "mir"
+  | "ssa"
+  | "vm";
+
+interface ExecutionResult {
+  output: string;
+}
+
 type OutputKind =
   | "sources"
   | "ir"
+  | "mir"
+  | "ssa"
   | "c"
   | "cAsm"
   | "llvm"
@@ -44,12 +56,17 @@ type OutputKind =
   | "directAsm"
   | "object"
   | "bytecode"
-  | "ir_output"
+  | "irOutput"
+  | "mirOutput"
+  | "ssaOutput"
   | "vmOutput";
 
-interface EmitResult {
+interface ObservationResult {
   sources: string;
   ir: string;
+  mir: string;
+  ssa: string;
+
   c: string;
   cAsm: string;
 
@@ -65,14 +82,17 @@ interface EmitResult {
   object: string;
 
   bytecode: string;
-
-  ir_output: string;
-  vmOutput: string;
 }
 
-const outputs: EmitResult = {
+const outputs: Record<
+  OutputKind,
+  string
+> = {
   sources: "",
   ir: "",
+  mir: "",
+  ssa: "",
+
   c: "",
   cAsm: "",
 
@@ -89,7 +109,9 @@ const outputs: EmitResult = {
 
   bytecode: "",
 
-  ir_output: "",
+  irOutput: "",
+  mirOutput: "",
+  ssaOutput: "",
   vmOutput: "",
 };
 
@@ -104,6 +126,8 @@ print(double);
 print(inferred);`;
 
 let activeOutput: OutputKind = "ir";
+let activeGroup = "pipeline";
+let activeBackend = "c";
 let currentPath: string | null = null;
 
 let sourceView:
@@ -176,6 +200,27 @@ function setStatus(
   }
 }
 
+function executionPathForOutput(
+  kind: OutputKind,
+): ExecutionPath | null {
+  switch (kind) {
+    case "irOutput":
+      return "ir";
+
+    case "mirOutput":
+      return "mir";
+
+    case "ssaOutput":
+      return "ssa";
+
+    case "vmOutput":
+      return "vm";
+
+    default:
+      return null;
+  }
+}
+
 function showOutput(
   kind: OutputKind,
 ) {
@@ -192,9 +237,146 @@ function showOutput(
       );
     });
 
+  const output = outputs[kind];
+
+  if (output) {
+    outputElement().textContent = output;
+    return;
+  }
+
   outputElement().textContent =
-    outputs[kind] ||
-    "Press Emit to generate code.";
+    executionPathForOutput(kind)
+      ? "Press Run to execute this path."
+      : "Press Emit to generate code.";
+}
+
+function showBackend(
+  backend: string,
+) {
+  if (activeGroup !== "backends") {
+    return;
+  }
+
+  activeBackend = backend;
+
+
+  document
+    .querySelectorAll<HTMLButtonElement>(
+      ".backend-tab",
+    )
+    .forEach((button) => {
+      button.classList.toggle(
+        "active",
+        button.dataset.backend === backend,
+      );
+    });
+
+  const tabs =
+    Array.from(
+      document.querySelectorAll<HTMLButtonElement>(
+        '.tab[data-group="backends"]',
+      ),
+    );
+
+  tabs.forEach((button) => {
+    button.hidden =
+      button.dataset.backend !== backend;
+  });
+
+  const activeTab =
+    tabs.find(
+      (button) =>
+        button.dataset.backend === backend &&
+        button.dataset.output === activeOutput,
+    );
+
+  if (activeTab) {
+    return;
+  }
+
+  const firstTab =
+    tabs.find(
+      (button) =>
+        button.dataset.backend === backend,
+    );
+
+  if (firstTab?.dataset.output) {
+    showOutput(
+      firstTab.dataset.output as OutputKind,
+    );
+  }
+}
+
+function showGroup(
+  group: string,
+) {
+  activeGroup = group;
+
+  const runButton =
+    document.querySelector<HTMLButtonElement>(
+      "#run-button",
+    );
+
+  if (runButton) {
+    runButton.hidden =
+      group !== "execution";
+  }
+
+  const backendGroups =
+    document.querySelector<HTMLElement>(
+      ".backend-groups",
+    );
+
+  if (backendGroups) {
+    backendGroups.hidden =
+      group !== "backends";
+  }
+
+  document
+    .querySelectorAll<HTMLButtonElement>(
+      ".group-tab",
+    )
+    .forEach((button) => {
+      button.classList.toggle(
+        "active",
+        button.dataset.group === group,
+      );
+    });
+
+  const tabs =
+    Array.from(
+      document.querySelectorAll<HTMLButtonElement>(
+        ".tab",
+      ),
+    );
+
+  if (group === "backends") {
+    tabs.forEach((button) => {
+      button.hidden =
+        button.dataset.group !== "backends" ||
+        button.dataset.backend !== activeBackend;
+    });
+
+    showBackend(activeBackend);
+    return;
+  }
+
+  tabs.forEach((button) => {
+    button.hidden =
+      button.dataset.group !== group;
+  });
+
+  const firstTab =
+    tabs.find(
+      (button) =>
+        button.dataset.group === group,
+    );
+
+  if (firstTab?.dataset.output) {
+    showOutput(
+      firstTab.dataset.output as OutputKind,
+    );
+  }
 }
 
 function annotateOrigins(): boolean {
@@ -272,11 +454,91 @@ async function saveFile() {
   setStatus("Saved");
 }
 
+async function runExecution() {
+  if (activeGroup !== "execution") {
+    setStatus(
+      "Execution path is not selected",
+      "error",
+    );
+    return;
+  }
+
+  const path =
+    executionPathForOutput(
+      activeOutput,
+    );
+
+  if (!path) {
+    outputElement().textContent =
+      `Invalid execution output: ${activeOutput}`;
+
+    setStatus(
+      "Execution path error",
+      "error",
+    );
+    return;
+  }
+
+  const button =
+    document.querySelector<HTMLButtonElement>(
+      "#run-button",
+    );
+
+  if (button) {
+    button.disabled = true;
+  }
+
+  setStatus(
+    `Running ${path.toUpperCase()}…`,
+    "working",
+  );
+
+  try {
+    const result =
+      await invoke<ExecutionResult>(
+        "execute",
+        {
+          source: sourceText(),
+          sourcePath: currentPath,
+          path,
+        },
+      );
+
+    outputs[activeOutput] =
+      result.output;
+
+    showOutput(activeOutput);
+
+    setStatus("Ready");
+  } catch (error) {
+    outputElement().textContent =
+      String(error);
+
+    setStatus(
+      "Execution error",
+      "error",
+    );
+  } finally {
+    if (button) {
+      button.disabled = false;
+    }
+  }
+}
+
 async function emit() {
   const button =
     document.querySelector<HTMLButtonElement>(
       "#emit-button",
     );
+  
+    document
+      .querySelector("#run-button")
+      ?.addEventListener(
+        "click",
+        () => {
+          void runExecution();
+        },
+      );
 
   if (button) {
     button.disabled = true;
@@ -289,7 +551,7 @@ async function emit() {
 
   try {
     const result =
-      await invoke<EmitResult>(
+      await invoke<ObservationResult>(
         "emit_all",
         {
           source: sourceText(),
@@ -603,6 +865,37 @@ window.addEventListener(
           },
         );
       });
+      document
+        .querySelectorAll<HTMLButtonElement>(
+          ".group-tab",
+        )
+        .forEach((button) => {
+          button.addEventListener(
+            "click",
+            () => {
+              showGroup(
+                button.dataset.group ??
+                  "pipeline",
+              );
+            },
+          );
+        });
+      document
+      .querySelectorAll<HTMLButtonElement>(
+        ".backend-tab",
+      )
+      .forEach((button) => {
+        button.addEventListener(
+          "click",
+          () => {
+            showBackend(
+              button.dataset.backend ?? "c",
+            );
+          },
+        );
+      });
+
+showGroup("pipeline");
 
     document
       .querySelector("#file-name")

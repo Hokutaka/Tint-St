@@ -37,8 +37,6 @@
         <section class="panel source-panel">
           <div class="panel-header">
             <div class="source-title">
-              <span>Cerune</span>
-
               <button
                 id="file-name"
                 class="file-name"
@@ -63,7 +61,23 @@
               >
                 Save
               </button>
+            </div>
+          </div>
 
+          <div
+            id="source-editor"
+            aria-label="Cerune source"
+          ></div>
+        </section>
+
+        <!-- RIGHT -->
+        <section class="panel output-panel">
+          <div class="observation-header">
+            <div class="observation-title">
+              Observation
+            </div>
+
+            <div class="observation-actions">
               <select
                 id="target-select"
                 aria-label="Target"
@@ -91,129 +105,275 @@
               >
                 Emit
               </button>
+
+              <button
+                id="run-button"
+                type="button"
+                hidden
+              >
+                Run
+              </button>
             </div>
           </div>
-          <div
-            id="source-editor"
-            aria-label="Cerune source"
-          ></div>
-        </section>
 
-        <!-- RIGHT -->
-        <section class="panel output-panel">
+          <div class="tab-groups">
+            <button
+              class="group-tab active"
+              data-group="pipeline"
+              type="button"
+            >
+              Pipeline
+            </button>
+
+            <button
+              class="group-tab"
+              data-group="backends"
+              type="button"
+            >
+              Backends
+            </button>
+
+            <button
+              class="group-tab"
+              data-group="execution"
+              type="button"
+            >
+              Execution
+            </button>
+          </div>
+
+          <div class="backend-groups" hidden>
+            <button
+              class="backend-tab active"
+              data-backend="c"
+              type="button"
+            >
+              C
+            </button>
+
+            <button
+              class="backend-tab"
+              data-backend="llvm"
+              type="button"
+            >
+              LLVM
+            </button>
+
+            <button
+              class="backend-tab"
+              data-backend="qbe"
+              type="button"
+            >
+              QBE
+            </button>
+
+            <button
+              class="backend-tab"
+              data-backend="wasm"
+              type="button"
+            >
+              WASM
+            </button>
+
+            <button
+              class="backend-tab"
+              data-backend="native"
+              type="button"
+            >
+              Native
+            </button>
+
+            <button
+              class="backend-tab"
+              data-backend="vm"
+              type="button"
+            >
+              VM
+            </button>
+          </div>
+
           <div class="tabs">
-          <button
-            class="tab"
-            data-output="sources"
-            type="button"
-          >
-            Sources
-          </button>
+            <!-- Pipeline -->
+            <button
+              class="tab"
+              data-group="pipeline"
+              data-output="sources"
+              type="button"
+            >
+              Sources
+            </button>
 
-          <button
-            class="tab active"
-            data-output="ir"
-            type="button"
-          >
-            Cerune IR
-          </button>
+            <button
+              class="tab active"
+              data-group="pipeline"
+              data-output="ir"
+              type="button"
+            >
+              Cerune IR
+            </button>
 
-          <button
-            class="tab"
-            data-output="irOutput"
-            type="button"
-          >
-            IR Output
-          </button>
+            <button
+              class="tab"
+              data-group="pipeline"
+              data-output="mir"
+              type="button"
+            >
+              MIR
+            </button>
 
-          <button
-            class="tab"
-            data-output="c"
-            type="button"
-          >
-            C
-          </button>
+            <button
+              class="tab"
+              data-group="pipeline"
+              data-output="ssa"
+              type="button"
+            >
+              SSA
+            </button>
 
-          <button
-            class="tab"
-            data-output="cAsm"
-            type="button"
-          >
-            C ASM
-          </button>
+            <!-- Backends: C -->
+            <button
+              class="tab"
+              data-group="backends"
+              data-backend="c"
+              data-output="c"
+              type="button"
+            >
+              Source
+            </button>
 
-          <button
-            class="tab"
-            data-output="llvm"
-            type="button"
-          >
-            LLVM IR
-          </button>
+            <button
+              class="tab"
+              data-group="backends"
+              data-backend="c"
+              data-output="cAsm"
+              type="button"
+            >
+              ASM
+            </button>
 
-          <button
-            class="tab"
-            data-output="llvmAsm"
-            type="button"
-          >
-            LLVM ASM
-          </button>
+            <!-- Backends: LLVM -->
+            <button
+              class="tab"
+              data-group="backends"
+              data-backend="llvm"
+              data-output="llvm"
+              type="button"
+            >
+              IR
+            </button>
 
-          <button
-            class="tab"
-            data-output="wat"
-            type="button"
-          >
-            WAT
-          </button>
+            <button
+              class="tab"
+              data-group="backends"
+              data-backend="llvm"
+              data-output="llvmAsm"
+              type="button"
+            >
+              ASM
+            </button>
 
-          <button
-            class="tab"
-            data-output="qbe"
-            type="button"
-          >
-            QBE IR
-          </button>
+            <!-- Backends: QBE -->
+            <button
+              class="tab"
+              data-group="backends"
+              data-backend="qbe"
+              data-output="qbe"
+              type="button"
+            >
+              IR
+            </button>
 
-          <button
-            class="tab"
-            data-output="qbeAsm"
-            type="button"
-          >
-            QBE ASM
-          </button>
+            <button
+              class="tab"
+              data-group="backends"
+              data-backend="qbe"
+              data-output="qbeAsm"
+              type="button"
+            >
+              ASM
+            </button>
 
-          <button
-            class="tab"
-            data-output="directAsm"
-            type="button"
-          >
-            Direct ASM
-          </button>
+            <!-- Backends: WASM -->
+            <button
+              class="tab"
+              data-group="backends"
+              data-backend="wasm"
+              data-output="wat"
+              type="button"
+            >
+              WAT
+            </button>
 
-          <button
-            class="tab"
-            data-output="object"
-            type="button"
-          >
-            Object
-          </button>
+            <!-- Backends: Native -->
+            <button
+              class="tab"
+              data-group="backends"
+              data-backend="native"
+              data-output="directAsm"
+              type="button"
+            >
+              ASM
+            </button>
 
-          <button
-            class="tab"
-            data-output="bytecode"
-            type="button"
-          >
-            Bytecode
-          </button>
+            <button
+              class="tab"
+              data-group="backends"
+              data-backend="native"
+              data-output="object"
+              type="button"
+            >
+              Object
+            </button>
 
-          <button
-            class="tab"
-            data-output="vmOutput"
-            type="button"
-          >
-            VM Output
-          </button>
-        </div>
+            <!-- Backends: VM -->
+            <button
+              class="tab"
+              data-group="backends"
+              data-backend="vm"
+              data-output="bytecode"
+              type="button"
+            >
+              Bytecode
+            </button>
+
+            <!-- Execution -->
+            <button
+              class="tab"
+              data-group="execution"
+              data-output="irOutput"
+              type="button"
+            >
+              IR
+            </button>
+
+            <button
+              class="tab"
+              data-group="execution"
+              data-output="mirOutput"
+              type="button"
+            >
+              MIR
+            </button>
+
+            <button
+              class="tab"
+              data-group="execution"
+              data-output="ssaOutput"
+              type="button"
+            >
+              SSA
+            </button>
+
+            <button
+              class="tab"
+              data-group="execution"
+              data-output="vmOutput"
+              type="button"
+            >
+              VM
+            </button>
+          </div>
+
           <pre id="output">Press Emit to generate code.</pre>
         </section>
       </main>

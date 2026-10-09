@@ -2,11 +2,11 @@
 
 # Tint*
 
-Tint* is a small visual development environment for observing the code generation process of [Cerune](https://github.com/Hokutaka/Cerune).
+Tint* is a small visual environment for observing Cerune's code generation process and execution paths.
 
 Write Cerune. Generate it. Look at it.
 
-From a single screen, you can observe how the same source code is transformed and executed across Cerune IR, different backends, Assembly, Object files, Bytecode, the IR Executor, and the VM.
+From a single screen, you can observe how the same source code is transformed across Cerune IR, MIR, SSA, different backends, Assembly, Object files, Bytecode, and multiple execution paths.
 
 ![Tint*](images/image.png)
 
@@ -16,30 +16,35 @@ Cerune source
      ▼
    Tint*
      │
-     ├─ Sources
-     ├─ Cerune IR
-     ├─ IR Output
+     ├─ Pipeline
+     │    ├─ Sources
+     │    ├─ Cerune IR
+     │    ├─ MIR
+     │    └─ SSA
      │
-     ├─ C
-     ├─ C ASM
+     ├─ Backends
+     │    ├─ C
+     │    │    ├─ Source
+     │    │    └─ ASM
+     │    ├─ LLVM
+     │    │    ├─ IR
+     │    │    └─ ASM
+     │    ├─ QBE
+     │    │    ├─ IR
+     │    │    └─ ASM
+     │    ├─ WASM
+     │    │    └─ WAT
+     │    ├─ Native
+     │    │    ├─ ASM
+     │    │    └─ Object
+     │    └─ VM
+     │         └─ Bytecode
      │
-     ├─ LLVM IR
-     ├─ LLVM ASM
-     │
-     ├─ WAT
-     │
-     ├─ QBE IR
-     ├─ QBE ASM
-     │
-     ├─ Direct ASM
-     ├─ Object
-     │    ├─ Sections
-     │    ├─ Symbols
-     │    ├─ Origin Symbols
-     │    └─ Relocations
-     │
-     ├─ Bytecode
-     └─ VM Output
+     └─ Execution
+          ├─ IR
+          ├─ MIR
+          ├─ SSA
+          └─ VM
 ```
 
 ## Features
@@ -50,14 +55,14 @@ Cerune source
 - Rename the current source file
 - Display loaded Sources
 - Display Cerune IR
-- Execute Cerune IR directly with the IR Executor
+- Display MIR
+- Display SSA-form MIR
 - Generate C
 - Generate LLVM IR
 - Generate WebAssembly Text (`.wat`)
 - Generate QBE IR
 - Generate x86-64 Assembly directly
 - Generate Cerune Bytecode
-- Run Bytecode with the Cerune VM
 - Observe C ASM through Clang
 - Observe LLVM ASM through Clang
 - Observe QBE ASM through QBE
@@ -66,7 +71,8 @@ Cerune source
 - Generate COFF / ELF Object files
 - Inspect Object Sections / Symbols / Relocations
 - Inspect Origin Symbols stored in Object files, grouped by NodeId
-- Switch between generated representations and execution results using tabs
+- Explicitly execute one selected IR / MIR / SSA / VM path
+- Switch between Pipeline / Backends / Execution
 - Validate with Cerune before code generation
 - Keyboard shortcuts
 
@@ -91,15 +97,16 @@ Linux x86-64
   x86_64-unknown-linux-gnu
 ```
 
-The selected target is used for outputs such as LLVM IR, Assembly generated through Clang, Direct ASM, and Object generation.
+The selected target is used for outputs such as LLVM IR, Assembly generated through Clang, QBE IR / QBE ASM, Direct ASM, and Object generation.
 
-The QBE path currently uses Linux x86-64.
+For QBE ASM, Tint* switches the QBE ABI according to the selected target.
 
 ```text
-Cerune
-  └─ QBE IR
-       └─ QBE amd64_sysv
-            └─ QBE ASM
+Windows x64
+  → amd64_win
+
+Linux x86-64
+  → amd64_sysv
 ```
 
 ## Origins
@@ -170,7 +177,7 @@ The generated files are relocatable objects and can be linked into executables b
 
 ## Requirements
 
-Tint* uses the Cerune CLI for validation, code generation, IR execution, and VM execution.
+Tint* uses the Cerune CLI for validation, code generation, and execution.
 
 First, install Cerune.
 
@@ -225,7 +232,7 @@ QBE IR itself is generated directly by Cerune.
 
 QBE is only required when that IR is further converted into Assembly for display as `QBE ASM`.
 
-The QBE path uses Linux x86-64 / `amd64_sysv`.
+QBE ASM uses `amd64_win` or `amd64_sysv` according to the selected target.
 
 ## Development
 
@@ -259,7 +266,11 @@ cargo check
 
 Tint* does not embed Cerune's compiler implementation inside the application.
 
-When you Emit, Tint* prepares a temporary `.ceru` source file and invokes the installed Cerune CLI.
+Tint* invokes the installed Cerune CLI and treats **Observation** and **Execution** as separate operations.
+
+### Observation
+
+When you Emit, Tint* prepares a temporary `.ceru` source file and retrieves representations and generated artifacts without executing the program.
 
 ```text
 Tint*
@@ -267,15 +278,15 @@ Tint*
  ├─ cerune check
  ├─ cerune emit-sources
  ├─ cerune emit-ir
- ├─ cerune run
+ ├─ cerune emit-mir
+ ├─ cerune emit-mir --ssa
  ├─ cerune emit-c
  ├─ cerune emit-llvm
  ├─ cerune emit-wat
  ├─ cerune emit-qbe
  ├─ cerune emit-asm
  ├─ cerune emit-obj
- ├─ cerune emit-bytecode
- └─ cerune run-vm
+ └─ cerune emit-bytecode
 ```
 
 Some views are generated directly by Cerune.
@@ -283,7 +294,8 @@ Some views are generated directly by Cerune.
 ```text
 Cerune → Sources
 Cerune → Cerune IR
-Cerune → Cerune IR → IR Executor → IR Output
+Cerune → MIR
+Cerune → SSA
 Cerune → C
 Cerune → LLVM IR
 Cerune → WAT
@@ -291,7 +303,6 @@ Cerune → QBE IR
 Cerune → Direct ASM
 Cerune → Object
 Cerune → Bytecode
-Cerune → Bytecode → Cerune VM → VM Output
 ```
 
 Other views intentionally show transformations performed by external tools.
@@ -324,17 +335,27 @@ Tint*
   └─ Relocations
 ```
 
-This makes it possible to observe:
+### Execution
+
+Execution explicitly runs only the selected execution path.
 
 ```text
-the same Cerune source
-        ↓
-different lowering / backend / execution paths
-        ↓
-the same Provenance across them
+IR
+  → cerune run
+
+MIR
+  → cerune run-mir
+
+SSA
+  → cerune run-mir --ssa
+
+VM
+  → cerune run-vm
 ```
 
-from a single screen.
+Tint* does not automatically execute multiple paths when you Emit.
+
+This keeps observation-oriented code generation separate from actually running the program.
 
 ## Design
 
@@ -342,7 +363,9 @@ Tint* is intentionally small.
 
 It is not intended to be a general-purpose, full-featured IDE.
 
-It is a lightweight visual environment for writing Cerune and observing how the same source code changes across different representations and execution paths.
+Tint* is not an IDE for writing code first; it is an observation UI for walking through the compiler.
+
+It focuses on writing Cerune and observing how the same source changes across representations, backends, and execution paths.
 
 The interface fundamentally focuses on:
 
@@ -350,7 +373,13 @@ The interface fundamentally focuses on:
 source | representation / output
 ```
 
-Cerune is responsible for the language, semantic analysis, IR, the IR Executor, code generation, Bytecode, the VM, and Provenance.
+Observation and Execution are intentionally separated.
+
+Observation retrieves representations and generated artifacts without running the program.
+
+Execution explicitly runs only the single path selected by the user.
+
+Cerune is responsible for the language, semantic analysis, IR, MIR, SSA, backends, Bytecode, the VM, and Provenance.
 
 External tools such as Clang and QBE are responsible for their respective additional transformations.
 

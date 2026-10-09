@@ -2,11 +2,11 @@
 
 # Tint*
 
-Tint* は [Cerune](https://github.com/Hokutaka/Cerune) のコード生成過程を観測するための、小さなビジュアル開発環境です。
+Tint* は [Cerune](https://github.com/Hokutaka/Cerune) のコード生成過程と実行経路を観測するための、小さなビジュアル環境です。
 
 Cerune のコードを書く。生成する。眺める。
 
-同じソースコードが、Cerune IR、各バックエンド、Assembly、Object、Bytecode、IR Executor、VM へどう変換・実行されていくのかを、ひとつの画面から観察できます。
+同じソースコードが、Cerune IR、MIR、SSA、各バックエンド、Assembly、Object、Bytecode、そして複数の実行経路へどう変換されていくのかを、ひとつの画面から観察できます。
 
 ![Tint*](images/image.png)
 
@@ -16,30 +16,35 @@ Cerune source
      ▼
    Tint*
      │
-     ├─ Sources
-     ├─ Cerune IR
-     ├─ IR Output
+     ├─ Pipeline
+     │    ├─ Sources
+     │    ├─ Cerune IR
+     │    ├─ MIR
+     │    └─ SSA
      │
-     ├─ C
-     ├─ C ASM
+     ├─ Backends
+     │    ├─ C
+     │    │    ├─ Source
+     │    │    └─ ASM
+     │    ├─ LLVM
+     │    │    ├─ IR
+     │    │    └─ ASM
+     │    ├─ QBE
+     │    │    ├─ IR
+     │    │    └─ ASM
+     │    ├─ WASM
+     │    │    └─ WAT
+     │    ├─ Native
+     │    │    ├─ ASM
+     │    │    └─ Object
+     │    └─ VM
+     │         └─ Bytecode
      │
-     ├─ LLVM IR
-     ├─ LLVM ASM
-     │
-     ├─ WAT
-     │
-     ├─ QBE IR
-     ├─ QBE ASM
-     │
-     ├─ Direct ASM
-     ├─ Object
-     │    ├─ Sections
-     │    ├─ Symbols
-     │    ├─ Origin Symbols
-     │    └─ Relocations
-     │
-     ├─ Bytecode
-     └─ VM Output
+     └─ Execution
+          ├─ IR
+          ├─ MIR
+          ├─ SSA
+          └─ VM
 ```
 
 ## 機能
@@ -50,14 +55,14 @@ Cerune source
 - 現在のソースファイルをリネーム
 - 読み込まれた Sources を表示
 - Cerune IR を表示
-- Cerune IR を IR Executor で直接実行
+- MIR を表示
+- SSA 化された MIR を表示
 - C を生成
 - LLVM IR を生成
 - WebAssembly Text (`.wat`) を生成
 - QBE IR を生成
 - x86-64 Assembly を直接生成
 - Cerune Bytecode を生成
-- Cerune VM で Bytecode を実行
 - Clang を経由して C ASM を観察
 - Clang を経由して LLVM ASM を観察
 - QBE を経由して QBE ASM を観察
@@ -66,7 +71,8 @@ Cerune source
 - COFF / ELF Object を生成
 - Object の Sections / Symbols / Relocations を観察
 - Object に残った Origin Symbols を NodeId ごとに観察
-- 生成された表現や実行結果をタブで切り替え
+- IR / MIR / SSA / VM の実行経路を個別に選択して実行
+- Pipeline / Backends / Execution を分離して切り替え
 - コード生成前に Cerune で検証
 - キーボードショートカット
 
@@ -91,15 +97,16 @@ Linux x86-64
   x86_64-unknown-linux-gnu
 ```
 
-選択したターゲットは、LLVM IR、Clang による Assembly、Direct ASM、Object 生成などに使用されます。
+選択したターゲットは、LLVM IR、Clang による Assembly、QBE IR / QBE ASM、Direct ASM、Object 生成などに使用されます。
 
-QBE 経路は現在 Linux x86-64 を使用します。
+QBE ASM では、選択したターゲットに応じて QBE の ABI を切り替えます。
 
 ```text
-Cerune
-  └─ QBE IR
-       └─ QBE amd64_sysv
-            └─ QBE ASM
+Windows x64
+  → amd64_win
+
+Linux x86-64
+  → amd64_sysv
 ```
 
 ## Origins
@@ -170,7 +177,7 @@ Object は relocatable object であり、外部リンカによって実行フ�
 
 ## 必要なもの
 
-Tint* は、コードの検証・生成・IR 実行・VM 実行に Cerune CLI を使用します。
+Tint* は、コードの検証・生成・実行に Cerune CLI を使用します。
 
 まず Cerune をインストールします。
 
@@ -225,7 +232,7 @@ QBE IR 自体は Cerune が直接生成します。
 
 QBE が必要なのは、その IR をさらに Assembly へ変換して `QBE ASM` として表示するときだけです。
 
-QBE 経路では Linux x86-64 / `amd64_sysv` を使用します。
+QBE ASM は選択したターゲットに応じて `amd64_win` / `amd64_sysv` を使い分けます。
 
 ## 開発
 
@@ -259,7 +266,11 @@ cargo check
 
 Tint* は、Cerune のコンパイラ実装そのものをアプリケーション内部へ持ち込みません。
 
-Emit すると、一時的な `.ceru` ソースを用意し、インストールされている Cerune CLI を呼び出します。
+Tint* からインストール済みの Cerune CLI を呼び出し、**Observation** と **Execution** を分離して扱います。
+
+### Observation
+
+Emit すると、一時的な `.ceru` ソースを用意し、コードを実行せずに各表現や生成物を取得します。
 
 ```text
 Tint*
@@ -267,15 +278,15 @@ Tint*
  ├─ cerune check
  ├─ cerune emit-sources
  ├─ cerune emit-ir
- ├─ cerune run
+ ├─ cerune emit-mir
+ ├─ cerune emit-mir --ssa
  ├─ cerune emit-c
  ├─ cerune emit-llvm
  ├─ cerune emit-wat
  ├─ cerune emit-qbe
  ├─ cerune emit-asm
  ├─ cerune emit-obj
- ├─ cerune emit-bytecode
- └─ cerune run-vm
+ └─ cerune emit-bytecode
 ```
 
 いくつかの表示は Cerune が直接生成します。
@@ -283,7 +294,8 @@ Tint*
 ```text
 Cerune → Sources
 Cerune → Cerune IR
-Cerune → Cerune IR → IR Executor → IR Output
+Cerune → MIR
+Cerune → SSA
 Cerune → C
 Cerune → LLVM IR
 Cerune → WAT
@@ -291,7 +303,6 @@ Cerune → QBE IR
 Cerune → Direct ASM
 Cerune → Object
 Cerune → Bytecode
-Cerune → Bytecode → Cerune VM → VM Output
 ```
 
 一方で、外部ツールによる変換結果を意図的に表示しているものもあります。
@@ -324,17 +335,27 @@ Tint*
   └─ Relocations
 ```
 
-こうすることで、
+### Execution
+
+Execution では、選択した実行経路だけを明示的に実行します。
 
 ```text
-同じ Cerune source
-        ↓
-異なる lowering / backend / execution path
-        ↓
-同じ Provenance を辿る
+IR
+  → cerune run
+
+MIR
+  → cerune run-mir
+
+SSA
+  → cerune run-mir --ssa
+
+VM
+  → cerune run-vm
 ```
 
-という観察をひとつの画面から行えます。
+Tint* は複数の実行経路を Emit 時に自動実行しません。
+
+これにより、観測のためのコード生成と、実際にプログラムを動かす操作を分離しています。
 
 ## 設計
 
@@ -342,7 +363,9 @@ Tint* は意図的に小さく作られています。
 
 汎用的なフル機能 IDE を目指すものではありません。
 
-Cerune を書き、同じソースコードが異なる表現や実行経路へどう変わっていくのかを眺めるための、軽量なビジュアル環境です。
+Tint* は、書くための IDE ではなく、コンパイラ内部を歩くための観測 UI です。
+
+Cerune を書き、同じソースコードが異なる表現・バックエンド・実行経路へどう変わっていくのかを眺めることに焦点を当てています。
 
 インターフェースが注目するものは基本的に、
 
@@ -352,7 +375,13 @@ source | representation / output
 
 です。
 
-Cerune は、言語、意味解析、IR、IR Executor、コード生成、Bytecode、VM、Provenance を担当します。
+Observation と Execution は意図的に分離されています。
+
+Observation は各表現や生成物を取得しますが、プログラムを実行しません。
+
+Execution はユーザーが選択したひとつの実行経路だけを明示的に動かします。
+
+Cerune は、言語、意味解析、IR、MIR、SSA、各バックエンド、Bytecode、VM、Provenance を担当します。
 
 Clang や QBE などの外部ツールは、それぞれの追加変換を担当します。
 
