@@ -247,6 +247,11 @@ button {
   display: none !important;
 }
 
+#emit-button[hidden],
+#run-button[hidden] {
+  display: none !important;
+}
+
 .backend-tab {
   padding: 4px 9px;
 

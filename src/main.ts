@@ -312,10 +312,20 @@ function showGroup(
 ) {
   activeGroup = group;
 
+  const emitButton =
+    document.querySelector<HTMLButtonElement>(
+      "#emit-button",
+    );
+
   const runButton =
     document.querySelector<HTMLButtonElement>(
       "#run-button",
     );
+
+  if (emitButton) {
+    emitButton.hidden =
+      group === "execution";
+  }
 
   if (runButton) {
     runButton.hidden =
@@ -326,11 +336,6 @@ function showGroup(
     document.querySelector<HTMLElement>(
       ".backend-groups",
     );
-
-  if (backendGroups) {
-    backendGroups.hidden =
-      group !== "backends";
-  }
 
   document
     .querySelectorAll<HTMLButtonElement>(
@@ -530,15 +535,6 @@ async function emit() {
     document.querySelector<HTMLButtonElement>(
       "#emit-button",
     );
-  
-    document
-      .querySelector("#run-button")
-      ?.addEventListener(
-        "click",
-        () => {
-          void runExecution();
-        },
-      );
 
   if (button) {
     button.disabled = true;
@@ -847,6 +843,15 @@ window.addEventListener(
         "click",
         () => {
           void emit();
+        },
+      );
+
+    document
+      .querySelector("#run-button")
+      ?.addEventListener(
+        "click",
+        () => {
+          void runExecution();
         },
       );
 
